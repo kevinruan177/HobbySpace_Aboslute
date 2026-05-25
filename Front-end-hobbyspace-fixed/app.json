@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "hobbyspace",
+    "slug": "hobbyspace",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/logoG.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/logoG.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/logoG.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/logoG.png"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
