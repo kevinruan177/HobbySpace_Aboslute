@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppHeader } from '../../components/Header';
 
 import {
@@ -17,6 +17,8 @@ import {
   MaterialCommunityIcons,
 } from '@expo/vector-icons';
 
+import * as ImagePicker from 'expo-image-picker';
+
 import { useRouter } from 'expo-router';
 import { profileStyles as styles } from '../../styles/screens/profile.Styles';
 import { BottomBar } from '../../components/BottomBar';
@@ -26,7 +28,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useMyHobbies } from '../../hooks/useHobbies';
 
 // Mapeamento de tipo de insígnia → imagem local
-// Ajuste conforme as insígnias reais do seu backend
 const BADGE_IMAGES: Record<string, any> = {
   conquistaC1: require('../../assets/conquistaC1.png'),
   conquistaF1: require('../../assets/conquistaF1.png'),
@@ -44,14 +45,41 @@ export default function Perfil() {
   const { user, logout } = useAuth();
   const { hobbies, isLoading: loadingHobbies } = useMyHobbies();
 
-  const activeHobbies = hobbies?.filter(h => h && h.progressPercent < 100).length || 0;
-  const finishedHobbies = hobbies?.filter(h => h && h.progressPercent >= 100).length || 0;
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  const activeHobbies = hobbies.filter(h => h.progressPercent < 100).length;
+  const finishedHobbies = hobbies.filter(h => h.progressPercent >= 100).length;
 
   const handleLogout = () => {
     Alert.alert('Sair', 'Deseja realmente sair?', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Sair', style: 'destructive', onPress: logout },
     ]);
+  };
+
+  const handlePickImage = async () => {
+
+    const permission =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        'Permissão necessária',
+        'Permita acesso à galeria para trocar a foto.'
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setSelectedImage(result.assets[0].uri);
+    }
   };
 
   return (
@@ -77,17 +105,32 @@ export default function Perfil() {
           {/* FOTO */}
           <View style={styles.imageContainer}>
 
-            {user?.avatarUrl ? (
-              <Image source={{ uri: user.avatarUrl }} style={styles.profileImg} />
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage }}
+                style={styles.profileImg}
+              />
+            ) : user?.avatarUrl ? (
+              <Image
+                source={{ uri: user.avatarUrl }}
+                style={styles.profileImg}
+              />
             ) : (
-              <Image source={require('../../assets/perfilpadrao.png')} style={styles.profileImg} />
+              <Image
+                source={require('../../assets/perfilpadrao.png')}
+                style={styles.profileImg}
+              />
             )}
 
             <Pressable
               style={styles.editIconContainer}
-              onPress={() => router.push('/settings')}
+              onPress={handlePickImage}
             >
-              <MaterialCommunityIcons name="pencil" size={20} color="#FFF" />
+              <MaterialCommunityIcons
+                name="pencil"
+                size={20}
+                color="#FFF"
+              />
             </Pressable>
 
           </View>
@@ -128,39 +171,40 @@ export default function Perfil() {
 
         <View style={styles.bioContainer}>
           <Text style={styles.bioText}>
-            {user?.bio?.trim() ? user.bio : 'Ainda está vazio por aqui...'}
+            {user?.bio?.trim()
+              ? user.bio
+              : 'Ainda está vazio por aqui...'}
           </Text>
         </View>
 
         {/* INSÍGNIAS */}
         <Text style={styles.sectionTitle}>Insígnias</Text>
 
-        {/* 
-          O backend deve retornar as insígnias via GET /auth/me ou endpoint próprio.
-          Por ora, mapeamos com base nos hobbies (level_up = insígnia conquistada).
-          Substitua por um endpoint real quando disponível.
-        */}
         <View style={styles.insigniaRow}>
 
-          {hobbies && hobbies.filter(h => h && h.id).slice(0, 4).map((hobby) => {
-            if (!hobby || !hobby.id) return null;
-            return (
-              <View key={hobby.id} style={styles.insigniaItem}>
-                <Image
-                  source={getBadgeImage(`conquista${hobby.name?.charAt(0) || 'D'}1`)}
-                  style={styles.insigniaImg}
-                />
-                <Text style={[styles.insigniaLabel, { color: '#9370DB' }]}>
-                  {hobby.name}{"\n"}Nivel {hobby.level}
-                </Text>
-              </View>
-            );
-          })}
+          {hobbies.slice(0, 4).map((hobby) => (
+            <View key={hobby.id} style={styles.insigniaItem}>
+              <Image
+                source={getBadgeImage(`conquista${hobby.name.charAt(0)}1`)}
+                style={styles.insigniaImg}
+              />
+              <Text
+                style={[styles.insigniaLabel, { color: '#9370DB' }]}
+              >
+                {hobby.name}{"\n"}Nível {hobby.level}
+              </Text>
+            </View>
+          ))}
 
-          {/* Slots vazios para completar 4 */}
-          {Array.from({ length: Math.max(0, 4 - hobbies.slice(0, 4).length) }).map((_, i) => (
+          {/* Slots vazios */}
+          {Array.from({
+            length: Math.max(0, 4 - hobbies.slice(0, 4).length),
+          }).map((_, i) => (
             <View key={`empty-${i}`} style={styles.insigniaItem}>
-              <Image source={BADGE_IMAGES.default} style={styles.insigniaImg} />
+              <Image
+                source={BADGE_IMAGES.default}
+                style={styles.insigniaImg}
+              />
               <Text style={styles.insigniaLabel}>Vazio</Text>
             </View>
           ))}
@@ -179,7 +223,13 @@ export default function Perfil() {
             alignItems: 'center',
           }}
         >
-          <Text style={{ color: '#DC2626', fontWeight: '600', fontSize: 15 }}>
+          <Text
+            style={{
+              color: '#DC2626',
+              fontWeight: '600',
+              fontSize: 15,
+            }}
+          >
             Sair da conta
           </Text>
         </TouchableOpacity>
