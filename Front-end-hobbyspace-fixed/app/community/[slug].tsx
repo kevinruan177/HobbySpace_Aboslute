@@ -260,14 +260,16 @@ export default function CommunityScreen() {
                 ))}
             </ScrollView>
 
-            {/* Botão criar post */}
-            <TouchableOpacity
-                style={styles.floatingButton}
-                activeOpacity={0.85}
-                onPress={() => router.push({ pathname: '/community/post/create', params: { slug } })}
-            >
-                <Ionicons name="create-outline" size={24} color="#FFF" />
-            </TouchableOpacity>
+            {/* Botão criar post — só visível para membros */}
+            {community?.isMember && (
+                <TouchableOpacity
+                    style={styles.floatingButton}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({ pathname: '/community/post/create', params: { slug } })}
+                >
+                    <Ionicons name="create-outline" size={24} color="#FFF" />
+                </TouchableOpacity>
+            )}
 
             <BottomBar />
         </View>

@@ -1,10 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
     View, Text, TextInput, ScrollView, TouchableOpacity,
     ImageBackground, ActivityIndicator, RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 
 import { AppHeader } from '../../components/Header';
 import { BottomBar } from '../../components/BottomBar';
@@ -73,6 +73,13 @@ export default function Home() {
 
     const { communities, isLoading: loadingComm, refresh: refreshComm } = useCommunities();
     const { progresses, isLoading: loadingProg, refresh: refreshProg } = useMyProgress();
+
+    // Atualiza comunidades ao voltar para a home (ex: após entrar/sair de um hobby)
+    useFocusEffect(
+        useCallback(() => {
+            refreshComm();
+        }, [])
+    );
 
     const handleRefresh = async () => {
         setRefreshing(true);
