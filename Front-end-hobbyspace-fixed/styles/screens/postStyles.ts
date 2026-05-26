@@ -258,4 +258,41 @@ export const postStyles = StyleSheet.create({
     marginLeft: 10,
   },
 
+
+  authorName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1A1A2E',
+  },
+  postTime: {
+    fontSize: 11,
+    color: '#9B8FBB',
+    marginTop: 2,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 20,
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0E8FB',
+  },
+  action: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  commentInput: {
+    flex: 1,
+    minHeight: 44,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    fontSize: 14,
+    borderWidth: 1,
+    borderColor: '#E4E4E4',
+    color: '#333',
+  },
 });

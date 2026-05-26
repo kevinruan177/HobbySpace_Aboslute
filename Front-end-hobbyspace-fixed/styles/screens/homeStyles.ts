@@ -1,263 +1,81 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
+const COL_WIDTH = (width - 48) / 2;
 
 export const homestyles = StyleSheet.create({
-
-  // ================= CONTAINER =================
-  container: {
-    flex: 1,
-    backgroundColor: '#FFF',
-    paddingTop: 140,
-  },
-
-  // LOGO
-  logoText: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    color: '#4B0082',
-  },
-
-  // ÍCONES DO HEADER
-  headerIcons: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-
-  // BOTÃO NOTIFICAÇÃO
-  notificationBtn: {
-    marginRight: 15,
-    position: 'relative',
-  },
-
-  // BOLINHA VERMELHA
-  badge: {
-    position: 'absolute',
-
-    right: 0,
-    top: 0,
-
-    backgroundColor: 'red',
-
-    width: 12,
-    height: 12,
-
-    borderRadius: 6,
-
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-
-  // FOTO PERFIL
-  profileImg: {
-    width: 45,
-    height: 45,
-
-    borderRadius: 22.5,
-
-    borderWidth: 1,
-    borderColor: '#DDD',
-  },
-
-  // ================= BARRA DE PESQUISA =================
-  searchBar: {
-    flexDirection: 'row',
-
-    backgroundColor: '#F5F5F5',
-
-    marginHorizontal: 20,
-    marginBottom: 25,
-
-    padding: 12,
-
-    borderRadius: 25,
-
-    alignItems: 'center',
-  },
-
-  // INPUT
-  searchInput: {
-    flex: 1,
-
-    marginLeft: 10,
-
-    fontSize: 16,
-    color: '#333',
-  },
-
-  // ================= TÍTULO DAS SEÇÕES =================
-  sectionHeader: {
-    flexDirection: 'row',
-
-    justifyContent: 'space-between',
-    alignItems: 'center',
-
-    paddingHorizontal: 20,
-    marginBottom: 15,
-  },
-
-  // TÍTULO
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#444',
-  },
-
-  // VER MAIS
-  verMais: {
-    color: '#4B0082',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
-  // ================= CARD DOS HOBBIES =================
-  hobbyCard: {
-    backgroundColor: '#FFF',
-
-    marginHorizontal: 20,
-    marginBottom: 15,
-
-    padding: 15,
-
-    borderRadius: 20,
-
-    elevation: 3,
-
-    // SOMBRA WEB
-    boxShadow: '0px 2px 10px rgba(0,0,0,0.1)',
-  },
-
-  // HEADER DO CARD
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-
-    marginBottom: 12,
-  },
-
-  // FUNDO DO ÍCONE
-  iconContainer: {
-    backgroundColor: '#F3E5F5',
-
-    padding: 10,
-
-    borderRadius: 12,
-  },
-
-  // NOME DO HOBBY
-  hobbyName: {
-    flex: 1,
-
-    marginLeft: 15,
-
-    fontSize: 17,
-    fontWeight: 'bold',
-
-    color: '#333',
-  },
-
-  // NÍVEL
-  levelBadge: {
-    backgroundColor: '#F5E1DA',
-
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-
-    borderRadius: 15,
-  },
-
-  // TEXTO DO NÍVEL
-  levelText: {
-    color: '#A0522D',
-    fontWeight: 'bold',
-  },
-
-  // ================= BARRA DE PROGRESSO =================
-  progressContainer: {
-    height: 8,
-
-    backgroundColor: '#F0F0F0',
-
-    borderRadius: 4,
-
-    overflow: 'hidden',
-  },
-
-  // PROGRESSO LARANJA
-  progressBar: {
-    height: 8,
-
-    backgroundColor: '#FF7F50',
-
-    borderRadius: 4,
-  },
-
-  // PORCENTAGEM
-  percentText: {
-    textAlign: 'right',
-
-    fontSize: 11,
-    color: '#999',
-
-    marginTop: 5,
-  },
-
-  // ================= GRID DESCOBRIR =================
-  gridContainer: {
-    flexDirection: 'row',
-
-    justifyContent: 'space-between',
-
-    paddingHorizontal: 15,
-  },
-
-  // COLUNAS
-  column: {
-    width: '48%',
-  },
-
-  // CARD DESCOBRIR
-  discoverCard: {
-    borderRadius: 20,
-
-    overflow: 'hidden',
-
-    marginBottom: 15,
-  },
-
-  // IMAGEM
-  discoverImg: {
-    width: '100%',
-    height: '100%',
-
-    justifyContent: 'flex-end',
-  },
-
-  // ARREDONDAR IMAGEM
-  imageRadius: {
-    borderRadius: 20,
-  },
-
-  // ESCURECER IMAGEM
-  cardOverlay: {
-    padding: 15,
-
-    backgroundColor: 'rgba(0,0,0,0.15)',
-  },
-
-  // TÍTULO DO CARD
-  cardTitle: {
-    color: '#FFF',
-
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-
-  // SUBTÍTULO
-  cardSub: {
-    color: '#FFF',
-
-    fontSize: 11,
-
-    opacity: 0.9,
-  },
-
+    container: { flex: 1, backgroundColor: '#F6F1F8' },
+    scroll: { flex: 1, backgroundColor: '#F6F1F8' },
+
+    // ── SEÇÃO HEADER ──────────────────────────────────────
+    sectionHeader: {
+        flexDirection: 'row', justifyContent: 'space-between',
+        alignItems: 'center', paddingHorizontal: 20, marginTop: 18, marginBottom: 4,
+    },
+    sectionTitle: { fontSize: 17, fontWeight: '800', color: '#1A1A2E', letterSpacing: -0.3 },
+    verMais: { fontSize: 13, fontWeight: '700', color: '#5e17eb' },
+
+    // ── PROGRESS CARDS (top) ──────────────────────────────
+    progressScroll: { paddingHorizontal: 20, paddingVertical: 6 },
+    emptyProgress: {
+        marginHorizontal: 20, marginVertical: 10,
+        backgroundColor: '#EDE9F8', borderRadius: 14, padding: 16,
+        flexDirection: 'row', alignItems: 'center', gap: 10,
+    },
+    emptyProgressText: { color: '#5e17eb', fontSize: 13, fontWeight: '600', flex: 1 },
+
+    // ── BUSCA ─────────────────────────────────────────────
+    searchContainer: {
+        flexDirection: 'row', alignItems: 'center',
+        backgroundColor: '#fff', borderRadius: 14, marginHorizontal: 20,
+        marginTop: 16, marginBottom: 4, paddingHorizontal: 14, paddingVertical: 10,
+        shadowColor: '#6B3FE4', shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07, shadowRadius: 8, elevation: 2,
+    },
+    searchInput: { flex: 1, marginLeft: 8, fontSize: 14, color: '#333' },
+
+    // ── PINTEREST GRID ────────────────────────────────────
+    gridContainer: { flexDirection: 'row', paddingHorizontal: 16, gap: 12, marginTop: 8 },
+    column: { flex: 1, gap: 12 },
+
+    discoverCard: {
+        width: '100%', borderRadius: 18, overflow: 'hidden',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.12, shadowRadius: 8, elevation: 4,
+    },
+    discoverImg: { width: '100%', height: '100%', justifyContent: 'flex-end' },
+    imageRadius: { borderRadius: 18 },
+    cardOverlay: {
+        padding: 12, paddingBottom: 14,
+        backgroundColor: 'rgba(0,0,0,0.38)',
+        borderBottomLeftRadius: 18, borderBottomRightRadius: 18,
+    },
+    cardTitle: { color: '#fff', fontWeight: '800', fontSize: 15, letterSpacing: -0.2 },
+    cardSub: { color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: '600', marginTop: 2 },
+
+    // ── HOBBY CARD (progresso no topo, versão antiga compatível) ─
+    hobbyCard: {
+        backgroundColor: '#fff', borderRadius: 18, padding: 16, marginHorizontal: 20,
+        marginVertical: 6, shadowColor: '#6B3FE4',
+        shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08,
+        shadowRadius: 8, elevation: 2,
+    },
+    cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    iconContainer: {
+        width: 36, height: 36, borderRadius: 10, backgroundColor: '#F3E8FF',
+        justifyContent: 'center', alignItems: 'center', marginRight: 10,
+    },
+    hobbyName: { flex: 1, fontSize: 15, fontWeight: '700', color: '#1A1A2E' },
+    levelBadge: {
+        backgroundColor: '#5e17eb', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3,
+    },
+    levelText: { color: '#fff', fontWeight: '800', fontSize: 12 },
+    progressContainer: { gap: 4 },
+    progressBar: {
+        height: 7, borderRadius: 4, backgroundColor: '#EDE9F8', overflow: 'hidden',
+    },
+    progressFill: { height: '100%', borderRadius: 4, backgroundColor: '#5e17eb' },
+    progressInfo: { flexDirection: 'row', justifyContent: 'space-between' },
+    progressLabel: { fontSize: 11, color: '#888' },
+    progressValue: { fontSize: 11, fontWeight: '700', color: '#5e17eb' },
 });

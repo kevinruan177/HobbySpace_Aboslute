@@ -1,213 +1,215 @@
-import React, { useState } from 'react';
-import { AppHeader } from "../../components/Header";
-
+import React, { useState, useMemo } from 'react';
 import {
-  View,
-  Text,
-  TextInput,
-  Image,
-  ScrollView,
-  Pressable,
-  ImageBackground,
-  TouchableOpacity,
-  ActivityIndicator,
+    View, Text, TextInput, ScrollView, TouchableOpacity,
+    ImageBackground, ActivityIndicator, RefreshControl,
 } from 'react-native';
-
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-import {
-  Ionicons,
-  FontAwesome5,
-  MaterialIcons
-} from '@expo/vector-icons';
-
+import { AppHeader } from '../../components/Header';
+import { BottomBar } from '../../components/BottomBar';
+import { ProgressCard } from '../../components/ProgressCard';
 import { homestyles as styles } from '../../styles/screens/homeStyles';
-import { BottomBar } from "../../components/BottomBar";
+import { useCommunities } from '../../hooks/useCommunity';
+import { useMyProgress } from '../../hooks/useProgress';
+import type { Community } from '../../types';
 
-// INTEGRAÇÃO
-import { useMyHobbies, useDiscoverHobbies } from '../../hooks/useHobbies';
-import { useAuth } from '../../context/AuthContext';
+// ── Alturas alternadas para o efeito Pinterest ─────────────
+const LEFT_HEIGHTS  = [200, 250, 180, 230, 210, 190];
+const RIGHT_HEIGHTS = [240, 170, 230, 190, 250, 180];
 
+function communityImageUrl(c: Community): string {
+    return (
+        c.coverImageUrl ||
+        c.banner ||
+        `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=80`
+    );
+}
+
+function formatCount(n: number): string {
+    if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 >= 100 ? 1 : 0)}K`;
+    return String(n);
+}
+
+// ── Card do Pinterest ───────────────────────────────────────
+function CommunityCard({
+    community, height, onPress,
+}: { community: Community; height: number; onPress: () => void }) {
+    return (
+        <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={onPress}
+            style={[styles.discoverCard, { height }]}
+        >
+            <ImageBackground
+                source={{ uri: communityImageUrl(community) }}
+                style={styles.discoverImg}
+                imageStyle={styles.imageRadius}
+            >
+                <View style={styles.cardOverlay}>
+                    {community.isMember && (
+                        <View style={{
+                            alignSelf: 'flex-start', backgroundColor: '#5e17eb',
+                            borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 4,
+                        }}>
+                            <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>MEMBRO</Text>
+                        </View>
+                    )}
+                    <Text style={styles.cardTitle} numberOfLines={1}>{community.title}</Text>
+                    <Text style={styles.cardSub}>
+                        👥 {formatCount(community.membersCount)} pessoas
+                    </Text>
+                </View>
+            </ImageBackground>
+        </TouchableOpacity>
+    );
+}
+
+// ── Tela principal ──────────────────────────────────────────
 export default function Home() {
+    const router = useRouter();
+    const [search, setSearch] = useState('');
+    const [refreshing, setRefreshing] = useState(false);
 
-  const router = useRouter();
-  const { user } = useAuth();
-  const [search, setSearch] = useState('');
+    const { communities, isLoading: loadingComm, refresh: refreshComm } = useCommunities();
+    const { progresses, isLoading: loadingProg, refresh: refreshProg } = useMyProgress();
 
-  // HOOKS REAIS
-  const { hobbies: myHobbies, isLoading: loadingMy } = useMyHobbies();
-  const { hobbies: discoverHobbies, isLoading: loadingDiscover } = useDiscoverHobbies(search);
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await Promise.all([refreshComm(), refreshProg()]);
+        setRefreshing(false);
+    };
 
-  return (
-    <View style={{ flex: 1 }}>
+    const filtered = useMemo(() => {
+        const q = search.toLowerCase().trim();
+        return q ? communities.filter(c => c.title.toLowerCase().includes(q)) : communities;
+    }, [communities, search]);
 
-      {/* HEADER */}
-      <AppHeader
-        title="HobbySpace"
-        variant="com-fundo"
-        showNotification={true}
-        rightButton="settings"
-      />
+    // Split Pinterest: coluna esquerda e direita
+    const leftItems  = filtered.filter((_, i) => i % 2 === 0);
+    const rightItems = filtered.filter((_, i) => i % 2 !== 0);
 
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+    const isLoading = loadingComm && communities.length === 0;
 
-        {/* ================= MEUS HOBBIES ================= */}
-        <View style={styles.sectionHeader}>
-
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.sectionTitle}>Meus Hobbies</Text>
-            <MaterialIcons
-              name="info-outline"
-              size={18}
-              color="#CCC"
-              style={{ marginLeft: 8 }}
+    return (
+        <View style={{ flex: 1, backgroundColor: '#F6F1F8' }}>
+            <AppHeader
+                title="HobbySpace"
+                variant="com-fundo"
+                showNotification={true}
+                rightButton="settings"
             />
-          </View>
 
-          <Pressable onPress={() => router.push('/home/myhobbies')}>
-            <Text style={styles.verMais}>Ver Todos</Text>
-          </Pressable>
-
-        </View>
-
-        {/* LOADING MEUS HOBBIES */}
-        {loadingMy ? (
-          <ActivityIndicator color="#6D28D9" style={{ marginVertical: 16 }} />
-        ) : myHobbies.length === 0 ? (
-          <Text style={{ color: '#999', marginLeft: 20, marginBottom: 12 }}>
-            Você ainda não tem hobbies. Explore abaixo!
-          </Text>
-        ) : (
-          myHobbies.map((hobby) => (
-            <View key={hobby.id} style={styles.hobbyCard}>
-
-              <View style={styles.cardHeader}>
-
-                <View style={styles.iconContainer}>
-                  <FontAwesome5 name="star" size={20} color="#4B0082" />
+            <ScrollView
+                style={styles.scroll}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 110, paddingBottom: 120 }}
+                refreshControl={
+                    <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#5e17eb" />
+                }
+            >
+                {/* ── MEU PROGRESSO ─────────────────────────── */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Meu Progresso</Text>
+                    <TouchableOpacity onPress={() => router.push('/home/myhobbies')}>
+                        <Text style={styles.verMais}>Ver Todos</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <Text style={styles.hobbyName}>{hobby.name}</Text>
+                {loadingProg ? (
+                    <ActivityIndicator color="#5e17eb" style={{ marginVertical: 16, marginLeft: 20 }} />
+                ) : progresses.length === 0 ? (
+                    <TouchableOpacity
+                        style={styles.emptyProgress}
+                        onPress={() => router.push('/home/myhobbies')}
+                    >
+                        <Ionicons name="trophy-outline" size={24} color="#5e17eb" />
+                        <Text style={styles.emptyProgressText}>
+                            Entre em comunidades para ganhar XP e desbloquear insígnias!
+                        </Text>
+                        <Ionicons name="chevron-forward" size={16} color="#5e17eb" />
+                    </TouchableOpacity>
+                ) : (
+                    <ScrollView
+                        horizontal
+                        showsHorizontalScrollIndicator={false}
+                        contentContainerStyle={styles.progressScroll}
+                    >
+                        {progresses
+                            .sort((a, b) => b.totalXp - a.totalXp)
+                            .slice(0, 8)
+                            .map(prog => (
+                                <ProgressCard
+                                    key={prog.communitySlug}
+                                    progress={prog}
+                                    onPress={() => router.push(`/community/${prog.communitySlug}`)}
+                                />
+                            ))}
+                    </ScrollView>
+                )}
 
-                <View style={styles.levelBadge}>
-                  <Text style={styles.levelText}>{hobby.level}</Text>
+                
+
+                {/* ── COMUNIDADES ───────────────────────────── */}
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Comunidades</Text>
+                    <Text style={{ fontSize: 12, color: '#9B8FBB' }}>{filtered.length} disponíveis</Text>
                 </View>
 
-              </View>
+                {/* ── BUSCA ─────────────────────────────────── */}
+                <View style={styles.searchContainer}>
+                    <Ionicons name="search" size={18} color="#9B8FBB" />
+                    <TextInput
+                        style={styles.searchInput}
+                        placeholder="Buscar comunidades..."
+                        placeholderTextColor="#C0B4D8"
+                        value={search}
+                        onChangeText={setSearch}
+                    />
+                    {search.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearch('')}>
+                            <Ionicons name="close-circle" size={18} color="#9B8FBB" />
+                        </TouchableOpacity>
+                    )}
+                </View>
 
-              {/* BARRA DE PROGRESSO */}
-              <View style={styles.progressContainer}>
-                <View
-                  style={[
-                    styles.progressBar,
-                    { width: `${hobby.progressPercent}%` }
-                  ]}
-                />
-              </View>
+                {isLoading ? (
+                    <ActivityIndicator color="#5e17eb" style={{ marginTop: 40 }} />
+                ) : filtered.length === 0 ? (
+                    <Text style={{ color: '#999', textAlign: 'center', marginTop: 32, fontSize: 14 }}>
+                        Nenhuma comunidade encontrada.
+                    </Text>
+                ) : (
+                    <View style={styles.gridContainer}>
+                        {/* Coluna Esquerda */}
+                        <View style={styles.column}>
+                            {leftItems.map((c, i) => (
+                                <CommunityCard
+                                    key={c.slug}
+                                    community={c}
+                                    height={LEFT_HEIGHTS[i % LEFT_HEIGHTS.length]}
+                                    onPress={() => router.push(`/community/${c.slug}`)}
+                                />
+                            ))}
+                        </View>
+                        {/* Coluna Direita — offset visual */}
+                        <View style={[styles.column, { marginTop: 32 }]}>
+                            {rightItems.map((c, i) => (
+                                <CommunityCard
+                                    key={c.slug}
+                                    community={c}
+                                    height={RIGHT_HEIGHTS[i % RIGHT_HEIGHTS.length]}
+                                    onPress={() => router.push(`/community/${c.slug}`)}
+                                />
+                            ))}
+                        </View>
+                    </View>
+                )}
+            </ScrollView>
 
-              <Text style={styles.percentText}>{hobby.progressPercent}%</Text>
+            
 
-            </View>
-          ))
-        )}
-
-        {/* ================= DESCOBRIR ================= */}
-        <Text style={[styles.sectionTitle, { marginLeft: 20, marginTop: 20, marginBottom: 15 }]}>
-          Descobrir
-        </Text>
-
-        {/* BARRA DE PESQUISA */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#999" />
-          <TextInput
-            placeholder="Explore novos hobbies..."
-            style={styles.searchInput}
-            placeholderTextColor="#999"
-            value={search}
-            onChangeText={setSearch}
-          />
+            <BottomBar />
         </View>
-
-        {/* GRID DESCOBRIR */}
-        {loadingDiscover ? (
-          <ActivityIndicator color="#6D28D9" style={{ marginVertical: 20 }} />
-        ) : (
-          <View style={styles.gridContainer}>
-
-            {/* COLUNA ESQUERDA */}
-            <View style={styles.column}>
-              {discoverHobbies
-                .filter((_, i) => i % 2 === 0)
-                .map((hobby) => (
-                  <TouchableOpacity
-                    key={hobby.id}
-                    activeOpacity={0.85}
-                    onPress={() => router.push(`/community/${hobby.communitySlug}`)}
-                    style={[styles.discoverCard, { height: 220 }]}
-                  >
-                    <ImageBackground
-                      source={
-                        hobby.coverImageUrl
-                          ? { uri: hobby.coverImageUrl }
-                          : require('../../assets/hobbyspace.png')
-                      }
-                      style={styles.discoverImg}
-                      imageStyle={styles.imageRadius}
-                    >
-                      <View style={styles.cardOverlay}>
-                        <Text style={styles.cardTitle}>{hobby.name}</Text>
-                        <Text style={styles.cardSub}>
-                          {hobby.membersCount.toLocaleString('pt-BR')} Pessoas
-                        </Text>
-                      </View>
-                    </ImageBackground>
-                  </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* COLUNA DIREITA */}
-            <View style={styles.column}>
-              {discoverHobbies
-                .filter((_, i) => i % 2 !== 0)
-                .map((hobby) => (
-                  <TouchableOpacity
-                    key={hobby.id}
-                    activeOpacity={0.85}
-                    onPress={() => router.push(`/community/${hobby.communitySlug}`)}
-                    style={[styles.discoverCard, { height: 220 }]}
-                  >
-                    <ImageBackground
-                      source={
-                        hobby.coverImageUrl
-                          ? { uri: hobby.coverImageUrl }
-                          : require('../../assets/hobbyspace.png')
-                      }
-                      style={styles.discoverImg}
-                      imageStyle={styles.imageRadius}
-                    >
-                      <View style={styles.cardOverlay}>
-                        <Text style={styles.cardTitle}>{hobby.name}</Text>
-                        <Text style={styles.cardSub}>
-                          {hobby.membersCount.toLocaleString('pt-BR')} Pessoas
-                        </Text>
-                      </View>
-                    </ImageBackground>
-                  </TouchableOpacity>
-                ))}
-            </View>
-
-          </View>
-        )}
-
-        <View style={{ height: 120 }} />
-
-      </ScrollView>
-
-      <BottomBar />
-
-    </View>
-  );
+    );
 }

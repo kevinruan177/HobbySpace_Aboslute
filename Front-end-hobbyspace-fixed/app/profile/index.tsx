@@ -1,245 +1,202 @@
 import React, { useState } from 'react';
 import { AppHeader } from '../../components/Header';
-
 import {
-  View,
-  Text,
-  Image,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  TouchableOpacity,
-  Alert,
+    View, Text, Image, ScrollView, TouchableOpacity,
+    ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
-
-import {
-  Ionicons,
-  MaterialCommunityIcons,
-} from '@expo/vector-icons';
-
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-
 import { useRouter } from 'expo-router';
 import { profileStyles as styles } from '../../styles/screens/profile.Styles';
 import { BottomBar } from '../../components/BottomBar';
+import { BadgeChip } from '../../components/BadgeChip';
 
-// INTEGRAÇÃO
 import { useAuth } from '../../context/AuthContext';
-import { useMyHobbies } from '../../hooks/useHobbies';
+import { useMyProgress } from '../../hooks/useProgress';
+import { api } from '../../services/api';
 
-// Mapeamento de tipo de insígnia → imagem local
-const BADGE_IMAGES: Record<string, any> = {
-  conquistaC1: require('../../assets/conquistaC1.png'),
-  conquistaF1: require('../../assets/conquistaF1.png'),
-  conquistaM1: require('../../assets/conquistaM1.png'),
-  default: require('../../assets/conquistavazia.png'),
+const LEVEL_COLORS: Record<number, string> = {
+    1: '#48BB78', 2: '#4299E1', 3: '#805AD5', 4: '#ED8936', 5: '#E53E3E',
 };
 
-function getBadgeImage(type: string) {
-  return BADGE_IMAGES[type] ?? BADGE_IMAGES.default;
-}
+const ICON_MAP: Record<string, string> = {
+    camera: 'camera', 'musical-notes': 'musical-notes', restaurant: 'restaurant',
+    book: 'book', brush: 'brush', leaf: 'leaf', body: 'body', grid: 'grid',
+    'color-wand': 'color-wand', pencil: 'pencil', 'color-palette': 'color-palette',
+    fitness: 'fitness', star: 'star',
+};
 
 export default function Perfil() {
+    const router   = useRouter();
+    const { user, logout, refreshUser } = useAuth();
+    const { progresses, isLoading: loadingProgress, refresh: refreshProgress } = useMyProgress();
+    const [uploading, setUploading] = useState(false);
 
-  const router = useRouter();
-  const { user, logout } = useAuth();
-  const { hobbies, isLoading: loadingHobbies } = useMyHobbies();
+    const topProg = progresses.sort((a, b) => b.totalXp - a.totalXp)[0];
+    const totalXp = progresses.reduce((s, p) => s + p.totalXp, 0);
 
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const handleRefresh = async () => { await Promise.all([refreshUser(), refreshProgress()]); };
 
-  const activeHobbies = hobbies.filter(h => h.progressPercent < 100).length;
-  const finishedHobbies = hobbies.filter(h => h.progressPercent >= 100).length;
-
-  const handleLogout = () => {
-    Alert.alert('Sair', 'Deseja realmente sair?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: logout },
+    const handleLogout = () => Alert.alert('Sair', 'Deseja realmente sair?', [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout },
     ]);
-  };
 
-  const handlePickImage = async () => {
+    const handlePickImage = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permissão negada', 'Precisamos de acesso à sua galeria.');
+            return;
+        }
+        const result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true,
+        });
+        if (!result.canceled && result.assets[0]?.base64) {
+            setUploading(true);
+            try {
+                const base64 = result.assets[0].base64!;
+                const mime   = result.assets[0].uri.endsWith('.png') ? 'image/png' : 'image/jpeg';
+                await api.patch('/auth/me', { avatarBase64: `data:${mime};base64,${base64}` });
+                await refreshUser();
+                Alert.alert('Sucesso', 'Foto de perfil atualizada!');
+            } catch (e: any) {
+                Alert.alert('Erro', e?.message || 'Não foi possível atualizar a foto.');
+            } finally { setUploading(false); }
+        }
+    };
 
-    const permission =
-      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    return (
+        <View style={{ flex: 1, backgroundColor: '#F6F1F8' }}>
+            <AppHeader title="Perfil" variant="com-fundo" showBackButton={false} showNotification rightButton="settings" />
 
-    if (!permission.granted) {
-      Alert.alert(
-        'Permissão necessária',
-        'Permita acesso à galeria para trocar a foto.'
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
-
-  return (
-    <View style={{ flex: 1 }}>
-
-      {/* HEADER */}
-      <AppHeader
-        title="Perfil"
-        variant="com-fundo"
-        showNotification={true}
-        showBackButton={true}
-        rightButton="settings"
-      />
-
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
-
-        {/* PERFIL */}
-        <View style={styles.profileSection}>
-
-          {/* FOTO */}
-          <View style={styles.imageContainer}>
-
-            {selectedImage ? (
-              <Image
-                source={{ uri: selectedImage }}
-                style={styles.profileImg}
-              />
-            ) : user?.avatarUrl ? (
-              <Image
-                source={{ uri: user.avatarUrl }}
-                style={styles.profileImg}
-              />
-            ) : (
-              <Image
-                source={require('../../assets/perfilpadrao.png')}
-                style={styles.profileImg}
-              />
-            )}
-
-            <Pressable
-              style={styles.editIconContainer}
-              onPress={handlePickImage}
+            <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingTop: 110, paddingBottom: 120 }}
+                refreshControl={<RefreshControl refreshing={false} onRefresh={handleRefresh} tintColor="#5e17eb" />}
             >
-              <MaterialCommunityIcons
-                name="pencil"
-                size={20}
-                color="#FFF"
-              />
-            </Pressable>
+                {/* ── HERO ──────────────────────────────── */}
+                <View style={styles.heroSection}>
+                    <TouchableOpacity style={styles.avatarWrapper} onPress={handlePickImage} disabled={uploading}>
+                        {uploading ? (
+                            <ActivityIndicator color="#5e17eb" style={{ width: 90, height: 90 }} />
+                        ) : user?.avatarUrl ? (
+                            <Image source={{ uri: user.avatarUrl }} style={styles.avatar} />
+                        ) : (
+                            <Image source={require('../../assets/perfilpadrao.png')} style={styles.avatar} />
+                        )}
+                        <View style={styles.cameraIcon}>
+                            <Ionicons name="camera" size={14} color="#fff" />
+                        </View>
+                    </TouchableOpacity>
 
-          </View>
+                    <Text style={styles.name}>{user?.name ?? '—'}</Text>
+                    <Text style={styles.email}>{user?.email ?? ''}</Text>
+                    {user?.bio ? <Text style={styles.bio}>{user.bio}</Text> : null}
 
-          {/* NOME */}
-          <Text style={styles.userName}>{user?.name ?? '—'}</Text>
+                    {/* XP total */}
+                    {totalXp > 0 && (
+                        <View style={styles.xpBadge}>
+                            <Ionicons name="flash" size={14} color="#fff" />
+                            <Text style={styles.xpBadgeText}>{totalXp} XP total</Text>
+                        </View>
+                    )}
+                </View>
 
-          {/* EMAIL */}
-          <Text style={styles.userEmail}>{user?.email ?? '—'}</Text>
+                {/* ── ESTATÍSTICAS ──────────────────────── */}
+                <View style={styles.statsRow}>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNum}>{progresses.length}</Text>
+                        <Text style={styles.statLabel}>Comunidades</Text>
+                    </View>
+                    <View style={[styles.statBox, styles.statBorder]}>
+                        <Text style={styles.statNum}>{topProg?.levelRoman ?? '—'}</Text>
+                        <Text style={styles.statLabel}>Melhor nível</Text>
+                    </View>
+                    <View style={styles.statBox}>
+                        <Text style={styles.statNum}>
+                            {progresses.reduce((max, p) => Math.max(max, p.streak), 0)}🔥
+                        </Text>
+                        <Text style={styles.statLabel}>Maior streak</Text>
+                    </View>
+                </View>
 
+                {/* ── INSÍGNIAS POR COMUNIDADE ──────────── */}
+                <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+                    <Text style={styles.sectionTitle}>Minhas Insígnias</Text>
+
+                    {loadingProgress ? (
+                        <ActivityIndicator color="#5e17eb" style={{ marginTop: 16 }} />
+                    ) : progresses.length === 0 ? (
+                        <View style={styles.emptyBadges}>
+                            <Text style={{ fontSize: 32 }}>🏅</Text>
+                            <Text style={styles.emptyText}>Entre em comunidades para ganhar insígnias!</Text>
+                            <TouchableOpacity style={styles.exploreBtn} onPress={() => router.push('/home')}>
+                                <Text style={styles.exploreBtnText}>Explorar comunidades</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        progresses
+                            .sort((a, b) => b.totalXp - a.totalXp)
+                            .map(prog => {
+                                const color = LEVEL_COLORS[prog.levelNumber] || '#805AD5';
+                                const iconName = ICON_MAP[prog.communityIcon || 'star'] || 'star';
+                                return (
+                                    <TouchableOpacity
+                                        key={prog.communitySlug}
+                                        style={styles.badgeCard}
+                                        onPress={() => router.push(`/community/${prog.communitySlug}`)}
+                                        activeOpacity={0.82}
+                                    >
+                                        <View style={[styles.badgeIconWrap, { backgroundColor: color + '20', borderColor: color + '40' }]}>
+                                            <Ionicons name={iconName as any} size={22} color={color} />
+                                        </View>
+                                        <View style={styles.badgeInfo}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                                <Text style={styles.badgeName}>{prog.communityName || prog.communitySlug}</Text>
+                                                <BadgeChip
+                                                    badge={{
+                                                        levelName: prog.levelName,
+                                                        levelRoman: prog.levelRoman,
+                                                        badge: prog.badge,
+                                                        communitySlug: prog.communitySlug,
+                                                    }}
+                                                    size="sm"
+                                                />
+                                            </View>
+                                            <View style={styles.badgeProgressRow}>
+                                                <View style={[styles.badgeTrack, { backgroundColor: color + '25' }]}>
+                                                    <View style={[styles.badgeFill, { width: `${prog.progressPercent}%` as any, backgroundColor: color }]} />
+                                                </View>
+                                                <Text style={[styles.badgeXp, { color }]}>{prog.totalXp} XP</Text>
+                                            </View>
+                                            {prog.streak > 0 && (
+                                                <Text style={styles.streakText}>🔥 {prog.streak} dias de sequência</Text>
+                                            )}
+                                        </View>
+                                        <Ionicons name="chevron-forward" size={16} color="#CCC" />
+                                    </TouchableOpacity>
+                                );
+                            })
+                    )}
+                </View>
+
+                {/* ── AÇÕES ─────────────────────────────── */}
+                <View style={{ paddingHorizontal: 20, marginTop: 24, gap: 10 }}>
+                    <TouchableOpacity style={styles.actionRow} onPress={() => router.push('/settings')}>
+                        <Ionicons name="settings-outline" size={20} color="#5e17eb" />
+                        <Text style={styles.actionLabel}>Configurações</Text>
+                        <Ionicons name="chevron-forward" size={16} color="#CCC" />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.actionRow, { borderColor: '#FECACA' }]} onPress={handleLogout}>
+                        <Ionicons name="log-out-outline" size={20} color="#E53E3E" />
+                        <Text style={[styles.actionLabel, { color: '#E53E3E' }]}>Sair</Text>
+                        <Ionicons name="chevron-forward" size={16} color="#FECACA" />
+                    </TouchableOpacity>
+                </View>
+            </ScrollView>
+
+            <BottomBar />
         </View>
-
-        {/* ESTATÍSTICAS */}
-        <View style={styles.statsRow}>
-
-          <View style={styles.statCard}>
-            {loadingHobbies ? (
-              <ActivityIndicator size="small" color="#6D28D9" />
-            ) : (
-              <Text style={styles.statValue}>{activeHobbies}</Text>
-            )}
-            <Text style={styles.statLabel}>Hobbies{"\n"}Ativos</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            {loadingHobbies ? (
-              <ActivityIndicator size="small" color="#6D28D9" />
-            ) : (
-              <Text style={styles.statValue}>{finishedHobbies}</Text>
-            )}
-            <Text style={styles.statLabel}>Hobbies{"\n"}Finalizados</Text>
-          </View>
-
-        </View>
-
-        {/* BIOGRAFIA */}
-        <Text style={styles.sectionTitle}>Biografia</Text>
-
-        <View style={styles.bioContainer}>
-          <Text style={styles.bioText}>
-            {user?.bio?.trim()
-              ? user.bio
-              : 'Ainda está vazio por aqui...'}
-          </Text>
-        </View>
-
-        {/* INSÍGNIAS */}
-        <Text style={styles.sectionTitle}>Insígnias</Text>
-
-        <View style={styles.insigniaRow}>
-
-          {hobbies.slice(0, 4).map((hobby) => (
-            <View key={hobby.id} style={styles.insigniaItem}>
-              <Image
-                source={getBadgeImage(`conquista${hobby.name.charAt(0)}1`)}
-                style={styles.insigniaImg}
-              />
-              <Text
-                style={[styles.insigniaLabel, { color: '#9370DB' }]}
-              >
-                {hobby.name}{"\n"}Nível {hobby.level}
-              </Text>
-            </View>
-          ))}
-
-          {/* Slots vazios */}
-          {Array.from({
-            length: Math.max(0, 4 - hobbies.slice(0, 4).length),
-          }).map((_, i) => (
-            <View key={`empty-${i}`} style={styles.insigniaItem}>
-              <Image
-                source={BADGE_IMAGES.default}
-                style={styles.insigniaImg}
-              />
-              <Text style={styles.insigniaLabel}>Vazio</Text>
-            </View>
-          ))}
-
-        </View>
-
-        {/* BOTÃO LOGOUT */}
-        <TouchableOpacity
-          onPress={handleLogout}
-          style={{
-            marginHorizontal: 24,
-            marginTop: 16,
-            paddingVertical: 14,
-            borderRadius: 12,
-            backgroundColor: '#FEE2E2',
-            alignItems: 'center',
-          }}
-        >
-          <Text
-            style={{
-              color: '#DC2626',
-              fontWeight: '600',
-              fontSize: 15,
-            }}
-          >
-            Sair da conta
-          </Text>
-        </TouchableOpacity>
-
-        <View style={{ height: 120 }} />
-
-      </ScrollView>
-
-      <BottomBar />
-
-    </View>
-  );
+    );
 }
