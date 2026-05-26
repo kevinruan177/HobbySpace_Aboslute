@@ -214,7 +214,7 @@ export const postStyles = StyleSheet.create({
 
   inputContainer: {
     position: "absolute",
-    bottom: 88,
+    bottom: 50,
 
     width: "100%",
 

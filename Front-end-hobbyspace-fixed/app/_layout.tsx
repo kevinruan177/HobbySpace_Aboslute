@@ -1,4 +1,5 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 
@@ -31,9 +32,11 @@ function RouteGuard() {
 
 export default function RootLayout() {
     return (
-        <AuthProvider>
-            <RouteGuard />
-            <Stack screenOptions={{ headerShown: false }} />
-        </AuthProvider>
+        <SafeAreaProvider>
+            <AuthProvider>
+                <RouteGuard />
+                <Stack screenOptions={{ headerShown: false }} />
+            </AuthProvider>
+        </SafeAreaProvider>
     );
 }

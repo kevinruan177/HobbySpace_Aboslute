@@ -4,8 +4,11 @@ import {
   View,
   TouchableOpacity,
   Image,
-  StyleSheet
+  StyleSheet,
+  Platform,
 } from "react-native";
+
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // IMPORTAR ROUTER
 import {
@@ -21,10 +24,14 @@ export function BottomBar() {
   // PEGA ROTA ATUAL
   const pathname = usePathname();
 
+  // Inset inferior do sistema (barra de navegação Android + iPhone home indicator)
+  const insets = useSafeAreaInsets();
+  const bottomPad = insets.bottom > 0 ? insets.bottom : (Platform.OS === 'android' ? 12 : 0);
+
   return (
 
     // CONTAINER DA BARRA
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPad, height: 90 + bottomPad }]}>
 
       {/* ================= CHAT IA ================= */}
       <TouchableOpacity
