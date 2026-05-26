@@ -22,7 +22,7 @@ function communityImageUrl(c: Community): string {
     return (
         c.coverImageUrl ||
         c.banner ||
-        `https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&auto=format&fit=crop&q=80`
+        `https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=800&auto=format&fit=crop&q=80`
     );
 }
 

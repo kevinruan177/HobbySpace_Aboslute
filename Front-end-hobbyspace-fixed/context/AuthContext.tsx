@@ -1,108 +1,246 @@
+// context/AuthContext.tsx
+
 import React, {
     createContext,
     useContext,
     useEffect,
     useState,
     useCallback,
+    useMemo,
 } from 'react';
 
-import { authService } from '../services/authService';
-import type { User, LoginPayload, RegisterPayload } from '../types';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// ============================================================
-// TYPES DO CONTEXT
-// ============================================================
+import { authService } from '../services/authService';
+
+import type {
+    User,
+    LoginPayload,
+    RegisterPayload,
+} from '../types';
+
+const TOKEN_KEY = '@hobbyspace:token';
+const REFRESH_KEY = '@hobbyspace:refreshToken';
+const USER_KEY = '@hobbyspace:user';
+
 interface AuthContextData {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+
     login: (payload: LoginPayload) => Promise<void>;
+
     register: (payload: RegisterPayload) => Promise<void>;
+
     logout: () => Promise<void>;
+
     refreshUser: () => Promise<void>;
 }
 
-// ============================================================
-// CONTEXT
-// ============================================================
-const AuthContext = createContext<AuthContextData>({} as AuthContextData);
+const AuthContext =
+    createContext<AuthContextData | undefined>(undefined);
 
-// ============================================================
-// PROVIDER
-// ============================================================
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<User | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export function AuthProvider({
+    children
+}: {
+    children: React.ReactNode
+}) {
 
-    // Restaura sessão ao abrir o app
+    const [user, setUser] =
+        useState<User | null>(null);
+
+    const [isLoading, setIsLoading] =
+        useState(true);
+
+    // LIMPA STORAGE
+    const clearAuthStorage = async () => {
+
+        try {
+
+            await AsyncStorage.removeItem(TOKEN_KEY);
+
+            await AsyncStorage.removeItem(REFRESH_KEY);
+
+            await AsyncStorage.removeItem(USER_KEY);
+
+        } catch (error) {
+
+            console.log(
+                'Erro ao limpar storage:',
+                error
+            );
+
+        }
+
+    };
+
+    // ── Verifica sessão ao abrir app ─────────────────────
+    const checkAuth = useCallback(async () => {
+
+        setIsLoading(true);
+
+        try {
+
+            // valida token via backend
+            const fresh =
+                await authService.getProfile();
+
+            setUser(fresh);
+
+        } catch {
+
+            // token inválido
+            setUser(null);
+
+            await clearAuthStorage();
+
+        } finally {
+
+            setIsLoading(false);
+
+        }
+
+    }, []);
+
     useEffect(() => {
-        let isMounted = true;
-        (async () => {
-            try {
-                const storedUser = await authService.getStoredUser();
-                if (isMounted) {
-                    if (storedUser) {
-                        setUser(storedUser);
-                    }
-                }
-            } catch (error) {
-                console.error('Erro ao restaurar sessão:', error);
-                if (isMounted) {
-                    setUser(null);
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        })();
-        return () => {
-            isMounted = false;
-        };
+
+        checkAuth();
+
+    }, [checkAuth]);
+
+    // ── LOGIN ────────────────────────────────────────────
+    const login = useCallback(async (
+        payload: LoginPayload
+    ) => {
+
+        setIsLoading(true);
+
+        try {
+
+            const response =
+                await authService.login(payload);
+
+            setUser(response.user);
+
+        } finally {
+
+            setIsLoading(false);
+
+        }
+
     }, []);
 
-    const login = useCallback(async (payload: LoginPayload) => {
-        const response = await authService.login(payload);
-        setUser(response.user);
+    // ── REGISTER ─────────────────────────────────────────
+    const register = useCallback(async (
+        payload: RegisterPayload
+    ) => {
+
+        setIsLoading(true);
+
+        try {
+
+            const response =
+                await authService.register(payload);
+
+            setUser(response.user);
+
+        } finally {
+
+            setIsLoading(false);
+
+        }
+
     }, []);
 
-    const register = useCallback(async (payload: RegisterPayload) => {
-        const response = await authService.register(payload);
-        setUser(response.user);
-    }, []);
-
+    // ── LOGOUT ───────────────────────────────────────────
     const logout = useCallback(async () => {
-        await authService.logout();
+
+        console.log('INICIO LOGOUT');
+
         setUser(null);
+
+        try {
+
+            await AsyncStorage.removeItem(TOKEN_KEY);
+
+            await AsyncStorage.removeItem(REFRESH_KEY);
+
+            await AsyncStorage.removeItem(USER_KEY);
+
+            console.log('STORAGE LIMPO');
+
+        } catch (error) {
+
+            console.log('ERRO STORAGE:', error);
+
+        }
+
     }, []);
 
+    // ── REFRESH USER ─────────────────────────────────────
     const refreshUser = useCallback(async () => {
-        const fresh = await authService.getProfile();
-        setUser(fresh);
+
+        try {
+
+            const fresh =
+                await authService.getProfile();
+
+            setUser(fresh);
+
+        } catch {
+
+            // token expirou
+            await clearAuthStorage();
+
+            setUser(null);
+
+        }
+
     }, []);
+
+    const value = useMemo(() => ({
+
+        user,
+
+        isAuthenticated: !!user,
+
+        isLoading,
+
+        login,
+
+        register,
+
+        logout,
+
+        refreshUser,
+
+    }), [
+        user,
+        isLoading,
+        login,
+        register,
+        logout,
+        refreshUser,
+    ]);
 
     return (
-        <AuthContext.Provider
-            value={{
-                user,
-                isAuthenticated: !!user,
-                isLoading,
-                login,
-                register,
-                logout,
-                refreshUser,
-            }}
-        >
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
 }
 
-// ============================================================
-// HOOK DE ATALHO
-// ============================================================
 export function useAuth() {
+
     const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error('useAuth deve ser usado dentro de <AuthProvider>');
+
+    if (!ctx) {
+
+        throw new Error(
+            'useAuth deve ser usado dentro de <AuthProvider>'
+        );
+
+    }
+
     return ctx;
 }

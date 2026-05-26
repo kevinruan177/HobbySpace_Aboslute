@@ -19,7 +19,6 @@ import { AppHeader } from "../../../components/Header";
 import { BottomBar } from "../../../components/BottomBar";
 import { createPostStyles as styles } from "../../../styles/screens/createPostStyles";
 
-// INTEGRAÇÃO
 import { postService } from "../../../services/postService";
 import { useAuth } from "../../../context/AuthContext";
 
@@ -27,19 +26,16 @@ export default function CreatePost() {
 
     const router = useRouter();
     const { user } = useAuth();
-
-    // Pega o slug da comunidade se vier pela rota (ex: /community/fotografia/post/create)
     const { slug: communitySlug } = useLocalSearchParams<{ slug: string }>();
 
     const [description, setDescription] = useState("");
-    const [imageUri, setImageUri] = useState<string | null>(null);
+    const [imageUri,    setImageUri]    = useState<string | null>(null);
     const [imageBase64, setImageBase64] = useState<string | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading,     setLoading]     = useState(false);
 
-    // SELECIONAR IMAGEM DA GALERIA
+    // ── Selecionar imagem ──────────────────────────────────────────────
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
         if (status !== 'granted') {
             Alert.alert('Permissão negada', 'Precisamos de acesso à sua galeria para adicionar fotos.');
             return;
@@ -53,25 +49,34 @@ export default function CreatePost() {
         });
 
         if (!result.canceled && result.assets[0]) {
-            setImageUri(result.assets[0].uri);
-            setImageBase64(result.assets[0].base64 ?? null);
+            const asset = result.assets[0];
+            setImageUri(asset.uri);
+
+            if (asset.base64) {
+                // Detecta MIME pelo URI para montar o prefixo correto
+                const ext  = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const mime = ext === 'png' ? 'image/png'
+                           : ext === 'gif' ? 'image/gif'
+                           : ext === 'webp' ? 'image/webp'
+                           : 'image/jpeg';
+                // Supabase (e o parseBase64 do backend) precisam do prefixo data:mime;base64,
+                setImageBase64(`data:${mime};base64,${asset.base64}`);
+            }
         }
     };
 
-    // PUBLICAR POST
+    // ── Publicar post ──────────────────────────────────────────────────
     const handlePublish = async () => {
         if (!description?.trim()) {
             Alert.alert('Atenção', 'Escreva algo antes de publicar.');
             return;
         }
-
         if (!communitySlug?.trim()) {
-            Alert.alert('Erro', 'Comunidade não identificada.');
+            Alert.alert('Erro', 'Comunidade não identificada. Volte e tente novamente.');
             return;
         }
 
         setLoading(true);
-
         try {
             await postService.create({
                 communitySlug: String(communitySlug).trim(),
@@ -79,7 +84,7 @@ export default function CreatePost() {
                 ...(imageBase64 ? { imageBase64 } : {}),
             });
 
-            Alert.alert('Publicado!', 'Seu post foi criado com sucesso.', [
+            Alert.alert('Publicado! 🎉', 'Seu post foi criado com sucesso.', [
                 { text: 'OK', onPress: () => router.back() }
             ]);
         } catch (error: any) {
@@ -93,7 +98,6 @@ export default function CreatePost() {
     return (
         <View style={styles.container}>
 
-            {/* HEADER */}
             <AppHeader
                 title="Criar Post"
                 variant="com-fundo"
@@ -111,15 +115,12 @@ export default function CreatePost() {
 
                     {/* PERFIL */}
                     <View style={styles.profileRow}>
-
                         {user?.avatarUrl ? (
                             <Image source={{ uri: user.avatarUrl }} style={styles.profileImage} />
                         ) : (
                             <Image source={require("../../../assets/perfilpadrao.png")} style={styles.profileImage} />
                         )}
-
                         <Text style={styles.username}>{user?.name ?? 'Usuário'}</Text>
-
                     </View>
 
                     {/* INPUT DE TEXTO */}
@@ -133,7 +134,7 @@ export default function CreatePost() {
                         editable={!loading}
                     />
 
-                    {/* PREVIEW DA IMAGEM OU BOTÃO DE UPLOAD */}
+                    {/* IMAGEM */}
                     <TouchableOpacity
                         activeOpacity={0.8}
                         style={styles.uploadContainer}

@@ -12,6 +12,7 @@ import {
     ScrollView
 } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
 import { loginStyles as styles } from '../../styles/screens/loginStyles';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -76,6 +77,18 @@ export default function Login() {
                     contentContainerStyle={{ alignItems: 'center', paddingBottom: 40 }}
                     showsVerticalScrollIndicator={false}
                 >
+
+                    {/* BOTÃO VOLTAR */}
+                    <TouchableOpacity
+                        onPress={() => router.replace('/')}
+                        style={{
+                            alignSelf: 'flex-start', marginLeft: 4, marginTop: 8, marginBottom: 4,
+                            flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8,
+                        }}
+                    >
+                        <Ionicons name="arrow-back" size={20} color="#6D28D9" />
+                        <Text style={{ color: '#6D28D9', fontWeight: '700', fontSize: 14 }}>Voltar</Text>
+                    </TouchableOpacity>
 
                     {/* LOGO */}
                     <Image

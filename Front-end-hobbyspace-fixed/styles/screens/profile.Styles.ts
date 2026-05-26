@@ -67,6 +67,8 @@ export const profileStyles = StyleSheet.create({
         flexDirection: 'row', alignItems: 'center', gap: 12,
         backgroundColor: '#fff', borderRadius: 14, padding: 16,
         borderWidth: 1, borderColor: '#F0E8FB',
+        zIndex: 99999,
+        elevation: 99999,
     },
     actionLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1A1A2E' },
 });

@@ -9,6 +9,7 @@ import {
     ScrollView
 } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Input } from '../../components/Input';
@@ -88,6 +89,18 @@ export default function Register() {
                     }}
                     showsVerticalScrollIndicator={false}
                 >
+
+                    {/* BOTÃO VOLTAR */}
+                    <TouchableOpacity
+                        onPress={() => router.replace('/')}
+                        style={{
+                            alignSelf: 'flex-start', marginLeft: 4, marginTop: 8, marginBottom: 4,
+                            flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8,
+                        }}
+                    >
+                        <Ionicons name="arrow-back" size={20} color="#6D28D9" />
+                        <Text style={{ color: '#6D28D9', fontWeight: '700', fontSize: 14 }}>Voltar</Text>
+                    </TouchableOpacity>
 
                     <Image
                         source={require('../../assets/logoG.png')}

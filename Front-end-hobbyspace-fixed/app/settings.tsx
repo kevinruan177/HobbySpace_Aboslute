@@ -54,9 +54,9 @@ export default function Settings() {
 
     setSavingProfile(true);
     try {
-      await api.patch('/auth/me', { 
-        name: editName.trim(), 
-        bio: editBio?.trim() || '' 
+      await api.patch('/auth/me', {
+        name: editName.trim(),
+        bio: editBio?.trim() || ''
       });
       await refreshUser();
       setEditModalVisible(false);
@@ -69,11 +69,23 @@ export default function Settings() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert('Sair', 'Deseja realmente sair da conta?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Sair', style: 'destructive', onPress: logout },
-    ]);
+  const handleLogout = async () => {
+
+    console.log('CLICOU LOGOUT');
+
+    await logout();
+
+    console.log('LOGOUT FINALIZADO');
+
+    router.replace('/auth/login');
+  };
+
+  const confirmLogout = async () => {
+
+    console.log('CONFIRM LOGOUT');
+
+    await handleLogout();
+
   };
 
   return (
@@ -202,7 +214,7 @@ export default function Settings() {
             marginTop: 8,
             paddingHorizontal: 16,
           }]}
-          onPress={handleLogout}
+          onPress={confirmLogout}
         >
           <View style={[styles.iconContainer, { backgroundColor: '#FECACA' }]}>
             <LogOut color="#DC2626" size={22} />

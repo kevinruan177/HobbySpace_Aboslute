@@ -73,8 +73,8 @@ export default function Index() {
                     </Pressable>
                 </Link>
 
-             {/* ROTA PARA A HOME NO EXPLORAR */}
-        <Link href="/home" asChild> 
+             {/* ROTA PARA O REGISTRO NO EXPLORAR */}
+        <Link href="/auth/register" asChild> 
             <Pressable style={styles.smallButton}>
                 <View style={styles.buttonContent}>
                     <Ionicons name="compass-outline" size={18} color="#333" />
