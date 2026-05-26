@@ -13,6 +13,7 @@ import { BadgeChip } from '../../components/BadgeChip';
 import { useAuth } from '../../context/AuthContext';
 import { useMyProgress } from '../../hooks/useProgress';
 import { api } from '../../services/api';
+import { uploadImage as uploadToCloudinary } from '../../services/cloudinaryService';
 
 const LEVEL_COLORS: Record<number, string> = {
     1: '#48BB78', 2: '#4299E1', 3: '#805AD5', 4: '#ED8936', 5: '#E53E3E',
@@ -64,16 +65,22 @@ export default function Perfil() {
             return;
         }
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'] as any,
             allowsEditing: true, aspect: [1, 1], quality: 0.7, base64: true,
         });
         if (!result.canceled && result.assets[0]?.base64) {
             setUploading(true);
             try {
                 const asset = result.assets[0];
-                const ext = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
-                const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
-                await api.patch('/auth/me', { avatarBase64: `data:${mime};base64,${asset.base64}` });
+                const ext   = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+                const mime  = ext === 'png' ? 'image/png' : 'image/jpeg';
+                const base64 = `data:${mime};base64,${asset.base64}`;
+
+                // 1. Faz upload direto para o Cloudinary
+                const avatarUrl = await uploadToCloudinary(base64, 'avatars');
+
+                // 2. Salva apenas a URL no backend (não envia base64)
+                await api.patch('/auth/me', { avatarUrl });
                 await refreshUser();
                 Alert.alert('Sucesso', 'Foto de perfil atualizada!');
             } catch (e: any) {

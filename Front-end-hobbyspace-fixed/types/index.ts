@@ -119,7 +119,8 @@ export interface Comment {
 export interface CreatePostPayload {
     communitySlug: string;
     text: string;
-    imageBase64?: string;
+    imageBase64?: string; // legado (não usar)
+    imageUrl?: string;    // URL já hospedada no Cloudinary
 }
 
 // ---------- NOTIFICATION ----------

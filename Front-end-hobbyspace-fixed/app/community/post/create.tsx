@@ -1,29 +1,20 @@
 import React, { useState } from "react";
-
 import {
-    View,
-    Text,
-    Image,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    Alert,
-    ActivityIndicator,
+    View, Text, Image, TextInput, TouchableOpacity,
+    ScrollView, Alert, ActivityIndicator,
 } from "react-native";
-
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import * as ImagePicker from 'expo-image-picker';
 
-import { AppHeader } from "../../../components/Header";
-import { BottomBar } from "../../../components/BottomBar";
+import { AppHeader }          from "../../../components/Header";
+import { BottomBar }          from "../../../components/BottomBar";
 import { createPostStyles as styles } from "../../../styles/screens/createPostStyles";
-
-import { postService } from "../../../services/postService";
-import { useAuth } from "../../../context/AuthContext";
+import { postService }        from "../../../services/postService";
+import { uploadImage }        from "../../../services/cloudinaryService";
+import { useAuth }            from "../../../context/AuthContext";
 
 export default function CreatePost() {
-
     const router = useRouter();
     const { user } = useAuth();
     const { slug: communitySlug } = useLocalSearchParams<{ slug: string }>();
@@ -33,62 +24,71 @@ export default function CreatePost() {
     const [imageBase64, setImageBase64] = useState<string | null>(null);
     const [loading,     setLoading]     = useState(false);
 
-    // ── Selecionar imagem ──────────────────────────────────────────────
+    // ── Selecionar imagem da galeria ──────────────────────────────────────
     const handlePickImage = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permissão negada', 'Precisamos de acesso à sua galeria para adicionar fotos.');
+            Alert.alert('Permissão negada', 'Precisamos de acesso à sua galeria.');
             return;
         }
-
         const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            mediaTypes: ['images'] as any,
             allowsEditing: true,
             quality: 0.7,
             base64: true,
         });
-
         if (!result.canceled && result.assets[0]) {
             const asset = result.assets[0];
             setImageUri(asset.uri);
-
             if (asset.base64) {
-                // Detecta MIME pelo URI para montar o prefixo correto
                 const ext  = asset.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
                 const mime = ext === 'png' ? 'image/png'
-                           : ext === 'gif' ? 'image/gif'
                            : ext === 'webp' ? 'image/webp'
                            : 'image/jpeg';
-                // Supabase (e o parseBase64 do backend) precisam do prefixo data:mime;base64,
                 setImageBase64(`data:${mime};base64,${asset.base64}`);
             }
         }
     };
 
-    // ── Publicar post ──────────────────────────────────────────────────
+    // ── Publicar: faz upload para Cloudinary ANTES de chamar o backend ────
     const handlePublish = async () => {
         if (!description?.trim()) {
             Alert.alert('Atenção', 'Escreva algo antes de publicar.');
             return;
         }
         if (!communitySlug?.trim()) {
-            Alert.alert('Erro', 'Comunidade não identificada. Volte e tente novamente.');
+            Alert.alert('Erro', 'Comunidade não identificada.');
             return;
         }
-
         setLoading(true);
         try {
+            let imageUrl: string | undefined;
+
+            // 1. Se há imagem selecionada, faz upload direto para o Cloudinary
+            if (imageBase64) {
+                try {
+                    imageUrl = await uploadImage(imageBase64, 'posts');
+                } catch (uploadErr: any) {
+                    Alert.alert(
+                        'Erro no upload',
+                        uploadErr.message || 'Não foi possível enviar a imagem. Tente novamente.'
+                    );
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // 2. Envia texto + URL (não base64) para o backend
             await postService.create({
                 communitySlug: String(communitySlug).trim(),
                 text: description.trim(),
-                ...(imageBase64 ? { imageBase64 } : {}),
+                ...(imageUrl ? { imageUrl } : {}),
             });
 
             Alert.alert('Publicado! 🎉', 'Seu post foi criado com sucesso.', [
-                { text: 'OK', onPress: () => router.back() }
+                { text: 'OK', onPress: () => router.back() },
             ]);
         } catch (error: any) {
-            console.error('Erro ao publicar post:', error);
             Alert.alert('Erro', error?.message || 'Não foi possível publicar o post.');
         } finally {
             setLoading(false);
@@ -97,7 +97,6 @@ export default function CreatePost() {
 
     return (
         <View style={styles.container}>
-
             <AppHeader
                 title="Criar Post"
                 variant="com-fundo"
@@ -105,14 +104,12 @@ export default function CreatePost() {
                 showNotification={false}
                 rightButton="none"
             />
-
             <ScrollView
                 style={styles.scroll}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ paddingTop: 20, paddingBottom: 160 }}
             >
                 <View style={styles.content}>
-
                     {/* PERFIL */}
                     <View style={styles.profileRow}>
                         {user?.avatarUrl ? (
@@ -123,7 +120,7 @@ export default function CreatePost() {
                         <Text style={styles.username}>{user?.name ?? 'Usuário'}</Text>
                     </View>
 
-                    {/* INPUT DE TEXTO */}
+                    {/* TEXTO */}
                     <TextInput
                         value={description}
                         onChangeText={setDescription}
@@ -152,7 +149,7 @@ export default function CreatePost() {
                         )}
                     </TouchableOpacity>
 
-                    {/* BOTÃO PUBLICAR */}
+                    {/* PUBLICAR */}
                     <TouchableOpacity
                         activeOpacity={0.8}
                         style={styles.publishButton}
@@ -165,12 +162,9 @@ export default function CreatePost() {
                             <Text style={styles.publishText}>Publicar</Text>
                         )}
                     </TouchableOpacity>
-
                 </View>
             </ScrollView>
-
             <BottomBar />
-
         </View>
     );
 }

@@ -66,7 +66,10 @@ export const authService = {
 
     // ---------- PERFIL LOGADO ----------
     getProfile: async (): Promise<User> => {
-        return api.get<User>('/auth/me');
+        const user = await api.get<User>('/auth/me');
+        // Atualiza o AsyncStorage com os dados mais recentes (avatarUrl, etc.)
+        await AsyncStorage.setItem(USER_KEY, JSON.stringify(user)).catch(() => {});
+        return user;
     },
 
     // ---------- SALVAR SESSÃO ----------
