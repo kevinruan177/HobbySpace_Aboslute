@@ -85,9 +85,8 @@ export default function CreatePost() {
                 ...(imageUrl ? { imageUrl } : {}),
             });
 
-            Alert.alert('Publicado! 🎉', 'Seu post foi criado com sucesso.', [
-                { text: 'OK', onPress: () => router.back() },
-            ]);
+            // Vai direto para a comunidade — useFocusEffect vai recarregar os posts
+            router.replace(`/community/${String(communitySlug).trim()}`);
         } catch (error: any) {
             Alert.alert('Erro', error?.message || 'Não foi possível publicar o post.');
         } finally {

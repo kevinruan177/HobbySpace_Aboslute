@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
     View, Text, Image, ScrollView, TouchableOpacity,
     ImageBackground, ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 
 import { AppHeader } from '../../components/Header';
 import { BottomBar } from '../../components/BottomBar';
@@ -112,6 +112,13 @@ export default function CommunityScreen() {
     const { community, isLoading: loadingComm, refresh: refreshComm, toggleMembership } = useCommunityDetail(slug || '');
     const { posts, isLoading: loadingPosts, error, refresh: refreshPosts, toggleLike } = useCommunityPosts(slug || '');
     const { progress } = useCommunityProgress(slug || '');
+
+    // Recarrega posts toda vez que o usuário volta para esta tela
+    useFocusEffect(
+        useCallback(() => {
+            refreshPosts();
+        }, [slug])
+    );
 
     const handleToggleMembership = async () => {
         if (joining) return;

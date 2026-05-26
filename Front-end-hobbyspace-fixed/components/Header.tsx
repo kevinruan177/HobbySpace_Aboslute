@@ -79,7 +79,15 @@ export function AppHeader({
             style={styles.backButton}
             onPress={
               onBackPress ||
-              (() => router.back())
+              (() => {
+                // router.back() quebra quando não há histórico (ex: reload da página)
+                // canGoBack() verifica se existe uma tela anterior na pilha
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/home');
+                }
+              })
             }
           >
 
